@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.5">
-    <title>Swiss Flight Itinerary</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swiss Flight Itenerary</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <style>
         body {
@@ -12,21 +12,18 @@
             font-family: Arial, sans-serif;
             display: flex;
             justify-content: center;
-            align-items: flex-start;
+            align-items: center;
             flex-direction: column;
         }
         #pdf-container {
             width: 100%;
             height: 100vh;
-            overflow-y: auto;
-            padding: 10px;
-            box-sizing: border-box;
+            overflow: auto;
         }
         canvas {
             width: 100%;
             height: auto;
             margin-bottom: 20px;
-            border: 1px solid #ccc;
         }
     </style>
 </head>
@@ -34,71 +31,39 @@
     <div id="pdf-container"></div>
 
     <script>
-        const url = 'Itinerary.pdf'; // Path to your PDF file
+        const url = 'Itirenary.pdf'; // Path to your PDF file
         const container = document.getElementById('pdf-container');
 
-        // Initialize Lazy Loading Observer
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const pageNumber = entry.target.dataset.page;
-                    if (!entry.target.dataset.rendered) {
-                        entry.target.dataset.rendered = true;
-                        renderPage(pageNumber, entry.target);
-                    }
-                }
-            });
-        });
+        // Load PDF.js
+        const loadingTask = pdfjsLib.getDocument(url);
+        loadingTask.promise.then(pdf => {
+            console.log('PDF loaded');
 
-        // Function to render a page
-        const renderPage = (pageNumber, placeholder) => {
-            pdfDoc.getPage(parseInt(pageNumber)).then(page => {
-                const viewport = page.getViewport({ scale: 1.5 });
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
+            // Loop through all the pages and render them
+            for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+                pdf.getPage(pageNumber).then(page => {
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
 
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
 
-                placeholder.replaceWith(canvas);
+                    container.appendChild(canvas);
 
-                const renderContext = {
-                    canvasContext: context,
-                    viewport: viewport,
-                };
-
-                page.render(renderContext).promise.then(() => {
-                    console.log(`Page ${pageNumber} rendered`);
+                    // Render the page into the canvas
+                    const renderContext = {
+                        canvasContext: context,
+                        viewport: viewport,
+                    };
+                    page.render(renderContext).promise.then(() => {
+                        console.log(`Page ${pageNumber} rendered`);
+                    });
                 });
-            }).catch(error => {
-                console.error(`Error rendering page ${pageNumber}:`, error);
-            });
-        };
-
-        let pdfDoc;
-
-        // Load the PDF
-        pdfjsLib.getDocument(url).promise
-            .then(pdf => {
-                console.log('PDF loaded');
-                pdfDoc = pdf;
-
-                // Create placeholders for each page
-                for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
-                    const placeholder = document.createElement('div');
-                    placeholder.dataset.page = pageNumber;
-                    placeholder.dataset.rendered = false;
-                    placeholder.style.height = '300px';
-                    placeholder.style.background = '#f0f0f0';
-                    placeholder.style.marginBottom = '20px';
-                    container.appendChild(placeholder);
-
-                    observer.observe(placeholder);
-                }
-            })
-            .catch(error => {
-                console.error('Error loading PDF:', error);
-            });
+            }
+        }).catch(error => {
+            console.error('Error loading PDF:', error);
+        });
     </script>
 </body>
 </html>
